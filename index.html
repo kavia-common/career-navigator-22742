@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Career Navigator — AI-Powered Career Copilot | Digital T3</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+    body { background: #080C14; font-family: 'DM Sans', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(58,175,185,0.2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(58,175,185,0.4); }
+    textarea:focus, input:focus { border-color: rgba(58,175,185,0.35) !important; }
+    button:active { transform: scale(0.97) !important; }
+  </style>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ═══════════════════════════════════════════
+   DESIGN SYSTEM — "Cosmic Navigator"
+   Deep space aesthetic with glowing trajectories
+   ═══════════════════════════════════════════ */
+
+const C = {
+  bg: "#080C14",
+  bgCard: "rgba(14,22,38,0.75)",
+  bgGlass: "rgba(16,28,50,0.55)",
+  bgGlassHover: "rgba(22,38,66,0.7)",
+  bgSurface: "#0E1626",
+  border: "rgba(58,175,185,0.12)",
+  borderHover: "rgba(58,175,185,0.35)",
+  borderSubtle: "rgba(255,255,255,0.06)",
+  cyan: "#3AAFB9",
+  cyanGlow: "rgba(58,175,185,0.4)",
+  cyanSoft: "rgba(58,175,185,0.12)",
+  coral: "#E8734A",
+  coralGlow: "rgba(232,115,74,0.35)",
+  coralSoft: "rgba(232,115,74,0.12)",
+  violet: "#7C5CFC",
+  violetGlow: "rgba(124,92,252,0.35)",
+  violetSoft: "rgba(124,92,252,0.12)",
+  gold: "#F5B731",
+  goldSoft: "rgba(245,183,49,0.12)",
+  green: "#34D399",
+  greenSoft: "rgba(52,211,153,0.12)",
+  red: "#F87171",
+  text: "#E8EDF5",
+  textMuted: "#7A8BA8",
+  textDim: "#4A5A74",
+  white: "#FFFFFF",
+};
+
+const font = "'DM Sans', 'SF Pro Display', -apple-system, sans-serif";
+const fontMono = "'JetBrains Mono', 'SF Mono', monospace";
+
+/* ═══════════════════════════════════════════
+   ANIMATED BACKGROUND — Star Constellation
+   ═══════════════════════════════════════════ */
+const StarField = () => {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let w = canvas.width = window.innerWidth;
+    let h = canvas.height = window.innerHeight;
+    const stars = Array.from({ length: 70 }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      r: Math.random() * 1.2 + 0.3,
+      a: Math.random() * 0.4 + 0.1,
+      speed: Math.random() * 0.15 + 0.02,
+      phase: Math.random() * Math.PI * 2,
+    }));
+    let frame;
+    const draw = (t) => {
+      ctx.clearRect(0, 0, w, h);
+      stars.forEach(s => {
+        const pulse = Math.sin(t * 0.001 * s.speed * 10 + s.phase) * 0.3 + 0.7;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(58,175,185,${s.a * pulse})`;
+        ctx.fill();
+      });
+      for (let i = 0; i < stars.length; i++) {
+        for (let j = i + 1; j < stars.length; j++) {
+          const dx = stars[i].x - stars[j].x, dy = stars[i].y - stars[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 140) {
+            ctx.beginPath();
+            ctx.moveTo(stars[i].x, stars[i].y);
+            ctx.lineTo(stars[j].x, stars[j].y);
+            ctx.strokeStyle = `rgba(58,175,185,${0.035 * (1 - dist / 140)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      frame = requestAnimationFrame(draw);
+    };
+    frame = requestAnimationFrame(draw);
+    const resize = () => { w = canvas.width = window.innerWidth; h = canvas.height = window.innerHeight; };
+    window.addEventListener("resize", resize);
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("resize", resize); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }} />;
+};
+
+/* ═══════ SHARED COMPONENTS ═══════ */
+
+const Glass = ({ children, style, hover, glow, onClick, pad = 24 }) => {
+  const [h, setH] = useState(false);
+  return (
+    <div onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{
+        background: h && hover ? C.bgGlassHover : C.bgGlass,
+        backdropFilter: "blur(24px) saturate(1.4)",
+        WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+        border: `1px solid ${h && hover ? C.borderHover : C.border}`,
+        borderRadius: 16, padding: pad,
+        boxShadow: h && glow ? `0 0 40px ${glow}` : "0 4px 24px rgba(0,0,0,0.2)",
+        transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+        cursor: onClick ? "pointer" : "default",
+        transform: h && hover ? "translateY(-2px)" : "translateY(0)",
+        ...style,
+      }}>{children}</div>
+  );
+};
+
+const GlowIcon = ({ emoji, color, size = 44 }) => (
+  <div style={{
+    width: size, height: size, borderRadius: size * 0.3,
+    background: `${color}15`, border: `1px solid ${color}30`,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: size * 0.5, boxShadow: `0 0 20px ${color}20`, flexShrink: 0,
+  }}>{emoji}</div>
+);
+
+const Ring = ({ pct, size = 52, stroke = 4, color = C.cyan }) => {
+  const r = (size - stroke) / 2, circ = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.borderSubtle} strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={circ - (pct / 100) * circ} strokeLinecap="round"
+        style={{ transition: "stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1)" }} />
+    </svg>
+  );
+};
+
+const Tag = ({ children, color = C.cyan }) => (
+  <span style={{
+    padding: "4px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, fontFamily: font,
+    background: `${color}15`, color, border: `1px solid ${color}25`, letterSpacing: 0.3,
+    display: "inline-block",
+  }}>{children}</span>
+);
+
+const Btn = ({ children, onClick, variant = "primary", style: sx = {}, disabled }) => {
+  const [h, setH] = useState(false);
+  const base = {
+    primary: { background: h ? C.cyan : `linear-gradient(135deg, ${C.cyan}, #2A8F98)`, color: C.bg, fontWeight: 600, boxShadow: h ? `0 0 30px ${C.cyanGlow}` : `0 2px 12px rgba(0,0,0,0.3)` },
+    ghost: { background: h ? C.cyanSoft : "transparent", color: C.text, border: `1px solid ${h ? C.borderHover : C.border}` },
+    coral: { background: h ? C.coral : `linear-gradient(135deg, ${C.coral}, #C85A30)`, color: C.white, fontWeight: 600 },
+  };
+  return (
+    <button onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{
+        padding: "10px 24px", borderRadius: 10, border: "none", cursor: disabled ? "not-allowed" : "pointer",
+        fontSize: 13, fontFamily: font, letterSpacing: 0.2,
+        transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        opacity: disabled ? 0.4 : 1, ...base[variant], ...sx,
+      }}>{children}</button>
+  );
+};
+
+const FadeIn = ({ children, delay = 0, style = {} }) => {
+  const [show, setShow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setShow(true), delay); return () => clearTimeout(t); }, [delay]);
+  return (
+    <div style={{
+      opacity: show ? 1 : 0, transform: show ? "translateY(0)" : "translateY(18px)",
+      transition: `all 0.7s cubic-bezier(0.16, 1, 0.3, 1)`, ...style,
+    }}>{children}</div>
+  );
+};
+
+/* ═══════ SIDEBAR ═══════ */
+
+const Sidebar = ({ role, view, go, onLogout, pathMode }) => {
+  const userNav = [
+    { id: "dashboard", label: "Mission Control", emoji: "🏠" },
+    { id: "step1", label: "Profile Builder", emoji: "👤" },
+    { id: "step2", label: "The Grill", emoji: "🔥" },
+    { id: "pathfork", label: "Path Discovery", emoji: "⚡" },
+    ...(pathMode === "linear" ? [{ id: "linear", label: "Direct Trajectory", emoji: "🎯" }]
+      : pathMode === "multiverse" ? [{ id: "multiverse", label: "Multiverse Explorer", emoji: "🌌" }] : []),
+    { id: "step4", label: "Roadmap", emoji: "🗺️" },
+    { id: "step5", label: "Marketplace", emoji: "🚀" },
+  ];
+  const adminNav = [
+    { id: "admin-dash", label: "Dashboard", emoji: "📊" },
+    { id: "admin-users", label: "Users & Roles", emoji: "👥" },
+    { id: "admin-mp", label: "Marketplace", emoji: "🏪" },
+    { id: "admin-config", label: "Configuration", emoji: "⚙️" },
+  ];
+  const nav = role === "admin" ? adminNav : userNav;
+
+  return (
+    <div style={{
+      width: 230, minHeight: "100vh", background: "rgba(8,12,20,0.92)",
+      backdropFilter: "blur(40px)", borderRight: `1px solid ${C.border}`,
+      display: "flex", flexDirection: "column", flexShrink: 0, fontFamily: font, zIndex: 10,
+    }}>
+      <div style={{ padding: "20px 18px 16px", borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: `linear-gradient(135deg, ${C.cyan}, #2A8F98)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 0 20px ${C.cyanGlow}`, fontSize: 16,
+          }}>🧭</div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text, letterSpacing: -0.3 }}>Career Navigator</div>
+            <div style={{ fontSize: 10, color: C.cyan, fontFamily: fontMono, letterSpacing: 1.5, textTransform: "uppercase" }}>
+              {role === "admin" ? "ADMIN" : "NAVIGATOR"}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ flex: 1, padding: "14px 10px", overflowY: "auto" }}>
+        <div style={{ fontSize: 10, color: C.textDim, textTransform: "uppercase", letterSpacing: 1.5, padding: "6px 10px 8px", fontWeight: 600 }}>
+          {role === "admin" ? "Administration" : "Your Journey"}
+        </div>
+        {nav.map(item => {
+          const active = view === item.id;
+          return (
+            <button key={item.id} onClick={() => go(item.id)} style={{
+              display: "flex", alignItems: "center", gap: 10, width: "100%",
+              padding: "9px 12px", margin: "2px 0", borderRadius: 10, border: "none",
+              background: active ? C.cyanSoft : "transparent",
+              borderLeft: active ? `2px solid ${C.cyan}` : "2px solid transparent",
+              cursor: "pointer", transition: "all 0.2s",
+            }}>
+              <span style={{ fontSize: 15 }}>{item.emoji}</span>
+              <span style={{ fontSize: 13, fontFamily: font, fontWeight: active ? 600 : 400, color: active ? C.cyan : C.textMuted }}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ padding: "12px 16px", borderTop: `1px solid ${C.border}` }}>
+        <button onClick={onLogout} style={{
+          display: "flex", alignItems: "center", gap: 8, padding: "6px 0",
+          background: "none", border: "none", cursor: "pointer",
+          color: C.textDim, fontSize: 12, fontFamily: font,
+        }}>↩ Switch Role</button>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════ LOGIN ═══════ */
+
+const Login = ({ onLogin }) => {
+  const [hov, setHov] = useState(null);
+  return (
+    <div style={{
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      alignItems: "center", justifyContent: "center",
+      background: C.bg, fontFamily: font, position: "relative",
+    }}>
+      <StarField />
+      <FadeIn delay={100}>
+        <div style={{ textAlign: "center", zIndex: 1, position: "relative" }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: 20, margin: "0 auto 20px",
+            background: `linear-gradient(135deg, ${C.cyan}, #2A8F98)`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 0 60px ${C.cyanGlow}, 0 0 120px ${C.cyanGlow}`, fontSize: 36,
+          }}>🧭</div>
+          <h1 style={{ margin: "0 0 6px", fontSize: 36, fontWeight: 700, color: C.text, letterSpacing: -1 }}>Career Navigator</h1>
+          <p style={{ color: C.textMuted, fontSize: 15, margin: "0 0 48px", letterSpacing: 0.5 }}>AI-Powered Career Copilot for Tech Leaders</p>
+          <div style={{ display: "flex", gap: 20 }}>
+            {[
+              { role: "user", title: "Tech Leader", sub: "Chart your professional journey", emoji: "👤", color: C.cyan },
+              { role: "admin", title: "Administrator", sub: "Manage platform & users", emoji: "🛡️", color: C.coral },
+            ].map(r => (
+              <div key={r.role} onMouseEnter={() => setHov(r.role)} onMouseLeave={() => setHov(null)}
+                onClick={() => onLogin(r.role)}
+                style={{
+                  width: 250, padding: 28, borderRadius: 16, textAlign: "center", cursor: "pointer",
+                  background: hov === r.role ? C.bgGlassHover : C.bgGlass,
+                  backdropFilter: "blur(24px)", border: `1px solid ${hov === r.role ? `${r.color}40` : C.border}`,
+                  boxShadow: hov === r.role ? `0 0 40px ${r.color}20` : "0 4px 24px rgba(0,0,0,0.2)",
+                  transform: hov === r.role ? "translateY(-3px)" : "translateY(0)",
+                  transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+                }}>
+                <div style={{
+                  width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
+                  background: `${r.color}12`, border: `1px solid ${r.color}30`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 26, boxShadow: `0 0 30px ${r.color}15`,
+                }}>{r.emoji}</div>
+                <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 6 }}>{r.title}</div>
+                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5, marginBottom: 18 }}>{r.sub}</div>
+                <div style={{ color: r.color, fontSize: 13, fontWeight: 600 }}>Enter →</div>
+              </div>
+            ))}
+          </div>
+          <p style={{ color: C.textDim, fontSize: 11, marginTop: 48, fontFamily: fontMono, letterSpacing: 1 }}>
+            DIGITAL T3 — BRINGING DIGITAL & AI TOGETHER
+          </p>
+        </div>
+      </FadeIn>
+    </div>
+  );
+};
+
+/* ═══════ DASHBOARD ═══════ */
+
+const Dashboard = ({ go }) => {
+  const steps = [
+    { id: "step1", n: "01", title: "Build Profile", sub: "Whole Person data ingestion", emoji: "👤", color: C.cyan, ready: true },
+    { id: "step2", n: "02", title: "The Grill", sub: "AI competency validation", emoji: "🔥", color: C.coral, ready: false },
+    { id: "pathfork", n: "03", title: "Discover Path", sub: "Linear trajectory or multiverse exploration", emoji: "⚡", color: C.violet, ready: false },
+    { id: "step4", n: "04", title: "Build Roadmap", sub: "Gap analysis & action plan", emoji: "🗺️", color: C.gold, ready: false },
+    { id: "step5", n: "05", title: "Marketplace", sub: "Curated growth opportunities", emoji: "🚀", color: C.green, ready: false },
+  ];
+
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 1050, fontFamily: font }}>
+      <FadeIn>
+        <Glass style={{ marginBottom: 32, position: "relative", overflow: "hidden",
+          background: `linear-gradient(135deg, rgba(58,175,185,0.08), rgba(14,22,38,0.8))` }}>
+          <div style={{ position: "absolute", top: -60, right: -40, width: 250, height: 250, borderRadius: "50%",
+            background: `radial-gradient(circle, ${C.cyanGlow} 0%, transparent 70%)`, opacity: 0.3 }} />
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <Tag color={C.cyan}>MISSION CONTROL</Tag>
+            <h1 style={{ margin: "12px 0 8px", fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: -0.5 }}>
+              Welcome, Navigator
+            </h1>
+            <p style={{ margin: 0, color: C.textMuted, fontSize: 14, lineHeight: 1.6, maxWidth: 560 }}>
+              Your career isn't a ladder — it's a constellation of possibilities. Complete each phase to chart your unique trajectory.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 20 }}>
+              <Ring pct={0} />
+              <div>
+                <div style={{ fontSize: 11, color: C.textDim, fontFamily: fontMono, letterSpacing: 1, textTransform: "uppercase" }}>Progress</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>0 / 5 <span style={{ fontSize: 13, color: C.textMuted, fontWeight: 400 }}>phases</span></div>
+              </div>
+            </div>
+          </div>
+        </Glass>
+      </FadeIn>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {steps.map((s, i) => (
+          <FadeIn key={s.id} delay={150 + i * 80}>
+            <Glass hover={s.ready} glow={s.ready ? `${s.color}15` : null}
+              onClick={s.ready ? () => go(s.id) : undefined}
+              style={{ cursor: s.ready ? "pointer" : "default" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                <div style={{ fontSize: 11, fontFamily: fontMono, fontWeight: 700, color: s.ready ? s.color : C.textDim, letterSpacing: 2, width: 28 }}>{s.n}</div>
+                <GlowIcon emoji={s.emoji} color={s.ready ? s.color : C.textDim} size={42} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: s.ready ? C.text : C.textDim }}>{s.title}</div>
+                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{s.sub}</div>
+                </div>
+                {s.ready ? <Btn onClick={() => go(s.id)} style={{ padding: "8px 20px" }}>Begin →</Btn> : <Tag color={C.textDim}>Locked</Tag>}
+              </div>
+            </Glass>
+          </FadeIn>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ═══════ STEP 1 — Profile Builder ═══════ */
+
+const Step1 = ({ onNext }) => {
+  const [connected, setConnected] = useState({});
+  const [showPersona, setShowPersona] = useState(false);
+  const anyConn = Object.values(connected).some(Boolean);
+
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 920, fontFamily: font }}>
+      <FadeIn>
+        <Tag color={C.cyan}>PHASE 01</Tag>
+        <h1 style={{ margin: "10px 0 6px", fontSize: 28, fontWeight: 700, color: C.text }}>Build Your Whole Person Profile</h1>
+        <p style={{ margin: "0 0 28px", color: C.textMuted, fontSize: 14, lineHeight: 1.6 }}>
+          We go deeper than keywords. Upload data from multiple dimensions to build a validated, holistic profile.
+        </p>
+      </FadeIn>
+      <FadeIn delay={100}>
+        <div style={{ fontSize: 11, color: C.textDim, fontFamily: fontMono, letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Formal Data Sources</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 24 }}>
+          {[
+            { key: "resume", label: "Resume / CV", sub: "PDF, DOCX", emoji: "📄", color: C.cyan },
+            { key: "linkedin", label: "LinkedIn Profile", sub: "Professional data", emoji: "🔗", color: "#0A66C2" },
+            { key: "reviews", label: "360° Reviews", sub: "Performance feedback", emoji: "⭐", color: C.gold },
+          ].map(s => (
+            <Glass key={s.key} hover glow={connected[s.key] ? `${C.green}15` : `${s.color}10`}>
+              <div style={{ textAlign: "center" }}>
+                <GlowIcon emoji={connected[s.key] ? "✓" : s.emoji} color={connected[s.key] ? C.green : s.color} size={48} />
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: "12px 0 4px" }}>{s.label}</div>
+                <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14 }}>{s.sub}</div>
+                <Btn variant={connected[s.key] ? "ghost" : "primary"}
+                  onClick={() => setConnected(p => ({ ...p, [s.key]: true }))}
+                  style={{ width: "100%", fontSize: 12, padding: "8px 16px" }}>
+                  {connected[s.key] ? "✓ Connected" : "Connect"}
+                </Btn>
+              </div>
+            </Glass>
+          ))}
+        </div>
+      </FadeIn>
+      <FadeIn delay={200}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
+          <Glass>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <GlowIcon emoji="💎" color={C.gold} size={36} />
+              <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Hidden Value</div>
+                <div style={{ fontSize: 12, color: C.textMuted }}>Side gigs, board roles, volunteering</div></div>
+            </div>
+            <textarea placeholder="Side projects, board memberships, sabbaticals..." style={{
+              width: "100%", height: 72, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`,
+              background: C.bgSurface, color: C.text, fontFamily: font, fontSize: 13, resize: "none", outline: "none", boxSizing: "border-box",
+            }} />
+          </Glass>
+          <Glass>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <GlowIcon emoji="🧠" color={C.violet} size={36} />
+              <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Psychometric Profile</div>
+                <div style={{ fontSize: 12, color: C.textMuted }}>Personality & behavioral traits</div></div>
+            </div>
+            <Btn variant="ghost" style={{ width: "100%", marginBottom: 6 }}>Begin Assessment →</Btn>
+            <div style={{ fontSize: 11, color: C.textDim, textAlign: "center" }}>~15 min • DISC, values, work style</div>
+          </Glass>
+        </div>
+      </FadeIn>
+
+      {anyConn && !showPersona && (
+        <FadeIn delay={100}>
+          <Glass style={{ background: `linear-gradient(135deg, ${C.cyanSoft}, ${C.bgGlass})`, borderColor: C.borderHover }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ fontSize: 28 }}>✨</div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Your Draft Persona is ready</div>
+                  <div style={{ fontSize: 13, color: C.textMuted }}>Review and validate before proceeding</div>
+                </div>
+              </div>
+              <Btn onClick={() => setShowPersona(true)}>Review Persona</Btn>
+            </div>
+          </Glass>
+        </FadeIn>
+      )}
+
+      {showPersona && (
+        <FadeIn delay={50}>
+          <Glass style={{ borderColor: `${C.cyan}25` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.text }}>Draft Persona</h3>
+              <Tag color={C.gold}>Pending Validation</Tag>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 16 }}>
+              {[{ l: "Role Archetype", v: "Engineering Leader", e: "⚙️" }, { l: "Experience Level", v: "Senior (8+ yrs)", e: "📈" }, { l: "Promotion Readiness", v: "72%", e: "🎯" }].map(d => (
+                <div key={d.l} style={{ padding: "14px 16px", borderRadius: 10, background: C.bgSurface, border: `1px solid ${C.borderSubtle}` }}>
+                  <div style={{ fontSize: 11, color: C.textDim, marginBottom: 4 }}><span style={{ fontSize: 12 }}>{d.e}</span> {d.l}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{d.v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: "12px 16px", borderRadius: 10, background: C.coralSoft, border: `1px solid ${C.coral}25`, display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+              <span style={{ fontSize: 16 }}>⚠️</span>
+              <span style={{ fontSize: 13, color: C.coral, fontWeight: 500 }}>Communication flagged as potential promotion blocker — The Grill will explore this</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <Btn variant="ghost">Edit</Btn>
+              <Btn onClick={onNext}>Confirm & Continue →</Btn>
+            </div>
+          </Glass>
+        </FadeIn>
+      )}
+    </div>
+  );
+};
+
+/* ═══════ STEP 2 — The Grill ═══════ */
+
+const Step2 = ({ onNext }) => {
+  const [msgs, setMsgs] = useState([
+    { from: "ai", text: "I've reviewed your profile. You mentioned leading a cloud migration — tell me about the specific business value delivered, not just the timeline." },
+  ]);
+  const [input, setInput] = useState("");
+  const [phase, setPhase] = useState(0);
+  const chatRef = useRef(null);
+  const followups = [
+    "Reducing latency by 40% is notable. How did you measure that? Walk me through the baseline metrics and who validated the results.",
+    "Good depth. You listed 'cloud architecture' — have you designed a multi-region failover from scratch, or worked within existing patterns?",
+    "That distinction matters. Your profile shows no P&L ownership yet. Describe a time you managed budget trade-offs above $1M.",
+    "I've completed your validation. Strong hands-on technical leadership, with growth gaps in financial management and exec communication. Ready to discover your path.",
+  ];
+  const send = () => {
+    if (!input.trim() || phase >= followups.length) return;
+    setMsgs(m => [...m, { from: "user", text: input }]);
+    setInput("");
+    setTimeout(() => { setMsgs(m => [...m, { from: "ai", text: followups[phase] }]); setPhase(p => p + 1); }, 1000);
+  };
+  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight; }, [msgs]);
+
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 880, fontFamily: font, display: "flex", flexDirection: "column", height: "calc(100vh - 40px)" }}>
+      <FadeIn>
+        <Tag color={C.coral}>PHASE 02</Tag>
+        <h1 style={{ margin: "10px 0 6px", fontSize: 28, fontWeight: 700, color: C.text }}>The Grill — Deep Competency Validation</h1>
+        <p style={{ margin: "0 0 14px", color: C.textMuted, fontSize: 14 }}>Distinguishing "reading the book" from "flying the plane."</p>
+      </FadeIn>
+      <FadeIn delay={80}>
+        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          {["Contextual Inquiry", "Experience Verification", "Static Assessment"].map((m, i) => (
+            <Tag key={m} color={i === 0 || (i === 1 && phase >= 2) ? C.cyan : C.textDim}>
+              {(i === 0 || (i === 1 && phase >= 2)) ? "● " : "○ "}{m}
+            </Tag>
+          ))}
+        </div>
+      </FadeIn>
+      <div ref={chatRef} style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 14, padding: "8px 0" }}>
+        {msgs.map((m, i) => (
+          <div key={i} style={{ display: "flex", justifyContent: m.from === "user" ? "flex-end" : "flex-start", gap: 10, alignItems: "flex-end" }}>
+            {m.from === "ai" && (
+              <div style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, background: `linear-gradient(135deg, ${C.coral}, #C85A30)`,
+                display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 16px ${C.coralGlow}`, fontSize: 14 }}>🔥</div>
+            )}
+            <Glass pad={14} style={{
+              maxWidth: "72%",
+              background: m.from === "user" ? `linear-gradient(135deg, ${C.cyan}20, ${C.cyan}10)` : C.bgGlass,
+              borderColor: m.from === "user" ? `${C.cyan}30` : C.border,
+              borderRadius: m.from === "user" ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
+            }}>
+              <div style={{ fontSize: 14, lineHeight: 1.6, color: C.text }}>{m.text}</div>
+            </Glass>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: 10, paddingTop: 14, borderTop: `1px solid ${C.border}` }}>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()}
+          placeholder={phase >= followups.length ? "Assessment complete" : "Share your experience..."}
+          disabled={phase >= followups.length}
+          style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: `1px solid ${C.border}`,
+            background: C.bgSurface, color: C.text, fontFamily: font, fontSize: 14, outline: "none" }} />
+        <Btn onClick={send} disabled={phase >= followups.length} style={{ padding: "12px 18px" }}>Send</Btn>
+      </div>
+      {phase >= followups.length && (
+        <FadeIn delay={200}><div style={{ textAlign: "right", paddingTop: 14 }}><Btn onClick={onNext}>Discover Your Path →</Btn></div></FadeIn>
+      )}
+    </div>
+  );
+};
+
+/* ═══════ PATH FORK — The Critical Decision ═══════ */
+
+const PathFork = ({ onChoose }) => {
+  const [hov, setHov] = useState(null);
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 960, fontFamily: font, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <FadeIn>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <Tag color={C.violet}>PHASE 03 — PATH DISCOVERY</Tag>
+          <h1 style={{ margin: "14px 0 8px", fontSize: 32, fontWeight: 700, color: C.text, letterSpacing: -0.5 }}>How do you see your future?</h1>
+          <p style={{ margin: 0, color: C.textMuted, fontSize: 15, lineHeight: 1.6, maxWidth: 580, marginInline: "auto" }}>
+            Based on your validated profile, choose how to chart your next move. This shapes everything that follows.
+          </p>
+        </div>
+      </FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, width: "100%" }}>
+        {/* LINEAR */}
+        <FadeIn delay={200}>
+          <div onMouseEnter={() => setHov("linear")} onMouseLeave={() => setHov(null)}
+            onClick={() => onChoose("linear")}
+            style={{
+              padding: 28, borderRadius: 16, cursor: "pointer", minHeight: 340,
+              background: hov === "linear" ? C.bgGlassHover : C.bgGlass,
+              backdropFilter: "blur(24px)", border: `1px solid ${hov === "linear" ? C.borderHover : C.border}`,
+              boxShadow: hov === "linear" ? `0 0 40px ${C.cyanGlow}` : "0 4px 24px rgba(0,0,0,0.2)",
+              transform: hov === "linear" ? "translateY(-3px)" : "translateY(0)",
+              transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}>
+            <svg width="100%" height="80" viewBox="0 0 400 80" style={{ marginBottom: 16 }}>
+              <defs><linearGradient id="lg"><stop offset="0%" stopColor={C.cyan} stopOpacity="0.2" /><stop offset="100%" stopColor={C.cyan} stopOpacity="1" /></linearGradient></defs>
+              <line x1="20" y1="60" x2="360" y2="20" stroke="url(#lg)" strokeWidth="3" strokeLinecap="round" />
+              <circle cx="20" cy="60" r="5" fill={C.cyan} opacity="0.4" />
+              <circle cx="190" cy="40" r="4" fill={C.cyan} opacity="0.6" />
+              <circle cx="360" cy="20" r="7" fill={C.cyan}><animate attributeName="r" values="7;10;7" dur="2s" repeatCount="indefinite" /></circle>
+            </svg>
+            <Tag color={C.cyan}>DIRECT TRAJECTORY</Tag>
+            <h2 style={{ margin: "12px 0 8px", fontSize: 22, fontWeight: 700, color: C.text }}>"I know where I'm going"</h2>
+            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: "0 0 20px" }}>
+              You have a clear target role — VP Engineering, CTO, Director. Get a focused gap analysis and a direct roadmap.
+            </p>
+            {["Select your target role", "Instant gap analysis vs. role requirements", "Focused Now / Near / Next roadmap"].map((t, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.textMuted, marginBottom: 6 }}>
+                <span style={{ color: C.cyan }}>→</span> {t}
+              </div>
+            ))}
+            <div style={{ marginTop: 18, fontSize: 13, fontWeight: 600, color: C.cyan }}>Choose Direct Trajectory →</div>
+          </div>
+        </FadeIn>
+
+        {/* MULTIVERSE */}
+        <FadeIn delay={350}>
+          <div onMouseEnter={() => setHov("multi")} onMouseLeave={() => setHov(null)}
+            onClick={() => onChoose("multiverse")}
+            style={{
+              padding: 28, borderRadius: 16, cursor: "pointer", minHeight: 340,
+              background: hov === "multi" ? C.bgGlassHover : C.bgGlass,
+              backdropFilter: "blur(24px)", border: `1px solid ${hov === "multi" ? `${C.violet}40` : C.border}`,
+              boxShadow: hov === "multi" ? `0 0 40px ${C.violetGlow}` : "0 4px 24px rgba(0,0,0,0.2)",
+              transform: hov === "multi" ? "translateY(-3px)" : "translateY(0)",
+              transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}>
+            <svg width="100%" height="80" viewBox="0 0 400 80" style={{ marginBottom: 16 }}>
+              <circle cx="40" cy="40" r="6" fill={C.violet} opacity="0.5"><animate attributeName="opacity" values="0.5;0.9;0.5" dur="2.5s" repeatCount="indefinite" /></circle>
+              <path d="M46 40 Q 150 38, 360 12" stroke={C.coral} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7" />
+              <path d="M46 40 Q 150 42, 360 40" stroke={C.violet} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7" />
+              <path d="M46 40 Q 150 44, 360 68" stroke={C.gold} strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.7" />
+              <circle cx="360" cy="12" r="5" fill={C.coral} opacity="0.8" /><text x="340" y="8" fontSize="9" fill={C.coral} textAnchor="end">CTO</text>
+              <circle cx="360" cy="40" r="5" fill={C.violet} opacity="0.8" /><text x="340" y="37" fontSize="9" fill={C.violet} textAnchor="end">Lateral</text>
+              <circle cx="360" cy="68" r="5" fill={C.gold} opacity="0.8" /><text x="340" y="66" fontSize="9" fill={C.gold} textAnchor="end">Portfolio</text>
+            </svg>
+            <Tag color={C.violet}>MULTIVERSE EXPLORER</Tag>
+            <h2 style={{ margin: "12px 0 8px", fontSize: 22, fontWeight: 700, color: C.text }}>"I want to explore possibilities"</h2>
+            <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, margin: "0 0 20px" }}>
+              Open to non-linear paths — lateral moves, pivots, fractional roles, portfolio careers. Explore and compare multiple timelines.
+            </p>
+            {["Explore vertical, lateral, pivot & portfolio", "Shopping Cart side-by-side comparison", "3/2 Rule: Mastery vs. Challenge balance"].map((t, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: C.textMuted, marginBottom: 6 }}>
+                <span style={{ color: C.violet }}>⟡</span> {t}
+              </div>
+            ))}
+            <div style={{ marginTop: 18, fontSize: 13, fontWeight: 600, color: C.violet }}>Explore Multiverse →</div>
+          </div>
+        </FadeIn>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════ LINEAR PATH ═══════ */
+
+const LinearPath = ({ onNext }) => {
+  const [sel, setSel] = useState(null);
+  const [showGap, setShowGap] = useState(false);
+  const roles = [
+    { id: "vp", title: "VP Engineering", org: "Enterprise", time: "1–2 yrs", fit: "75%", emoji: "🏢" },
+    { id: "dir", title: "Director of Engineering", org: "Growth-stage", time: "6–12 mo", fit: "88%", emoji: "📐" },
+    { id: "cto", title: "CTO", org: "Series A/B Startup", time: "2+ yrs", fit: "90%", emoji: "🚀" },
+    { id: "head", title: "Head of Platform", org: "Mid-size", time: "1 yr", fit: "82%", emoji: "⚙️" },
+  ];
+  const gaps = [
+    { skill: "Technical Architecture", cur: 85, req: 80, color: C.green },
+    { skill: "People Leadership", cur: 70, req: 85, color: C.gold },
+    { skill: "Financial / P&L Management", cur: 30, req: 70, color: C.coral },
+    { skill: "Executive Communication", cur: 45, req: 80, color: C.coral },
+    { skill: "Strategic Planning", cur: 60, req: 75, color: C.gold },
+  ];
+
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 920, fontFamily: font }}>
+      <FadeIn>
+        <Tag color={C.cyan}>DIRECT TRAJECTORY</Tag>
+        <h1 style={{ margin: "10px 0 6px", fontSize: 28, fontWeight: 700, color: C.text }}>Select Your Target Role</h1>
+        <p style={{ margin: "0 0 28px", color: C.textMuted, fontSize: 14 }}>Roles aligned with your validated competencies. Pick your destination.</p>
+      </FadeIn>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 24 }}>
+        {roles.map((r, i) => (
+          <FadeIn key={r.id} delay={100 + i * 60}>
+            <Glass hover glow={sel === r.id ? C.cyanGlow : null}
+              onClick={() => { setSel(r.id); setShowGap(true); }}
+              style={{ cursor: "pointer", borderColor: sel === r.id ? `${C.cyan}40` : C.border, background: sel === r.id ? `${C.cyan}08` : C.bgGlass }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                <div style={{ fontSize: 28 }}>{r.emoji}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: C.text }}>{r.title}</div>
+                  <div style={{ fontSize: 12, color: C.textMuted }}>{r.org}</div>
+                </div>
+                {sel === r.id && <Tag color={C.cyan}>Selected</Tag>}
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+                <Tag color={C.textMuted}>⏱ {r.time}</Tag>
+                <Tag color={C.green}>Fit: {r.fit}</Tag>
+              </div>
+            </Glass>
+          </FadeIn>
+        ))}
+      </div>
+
+      {showGap && (
+        <FadeIn delay={100}>
+          <Glass style={{ borderColor: `${C.cyan}20` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+              <span style={{ fontSize: 20 }}>🎯</span>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.text }}>
+                Gap Analysis — {roles.find(r => r.id === sel)?.title}
+              </h3>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+              {gaps.map(g => (
+                <div key={g.skill}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, color: C.text, fontWeight: 500 }}>{g.skill}</span>
+                    <span style={{ fontSize: 12, fontFamily: fontMono, color: g.cur >= g.req ? C.green : C.coral }}>{g.cur}% / {g.req}%</span>
+                  </div>
+                  <div style={{ position: "relative", height: 6, borderRadius: 3, background: C.bgSurface }}>
+                    <div style={{ position: "absolute", left: `${g.req}%`, top: -3, width: 2, height: 12, background: C.textDim, borderRadius: 1 }} />
+                    <div style={{ height: "100%", borderRadius: 3, width: `${g.cur}%`, background: `linear-gradient(90deg, ${g.color}60, ${g.color})`, boxShadow: `0 0 8px ${g.color}40`, transition: "width 1s ease" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}><Btn onClick={onNext}>Build Roadmap →</Btn></div>
+          </Glass>
+        </FadeIn>
+      )}
+    </div>
+  );
+};
+
+/* ═══════ MULTIVERSE EXPLORER ═══════ */
+
+const MultiverseExplorer = ({ onNext }) => {
+  const [expanded, setExpanded] = useState(null);
+  const [cart, setCart] = useState([]);
+  const paths = [
+    { id: "vert", type: "Vertical", role: "VP Engineering", emoji: "⬆️", color: C.cyan, desc: "Promotion — increased scope, P&L ownership, org leadership.", time: "1–2 Yrs", fit: "75%", gap: "Medium", m: 3, c: 2 },
+    { id: "lat", type: "Lateral", role: "Principal Engineer", emoji: "↔️", color: C.violet, desc: "Adjacent role — breadth, cross-functional influence, deep tech.", time: "6–12 Mo", fit: "88%", gap: "Low", m: 4, c: 1 },
+    { id: "pivot", type: "Pivot", role: "CTO at HealthTech", emoji: "↗️", color: C.coral, desc: "Industry change — FinTech to HealthTech, enterprise to startup.", time: "2+ Yrs", fit: "90%", gap: "High", m: 2, c: 3 },
+    { id: "port", type: "Non-Linear", role: "Fractional CTO + Advisor", emoji: "🌐", color: C.gold, desc: "Portfolio career — advisory, fractional leadership, speaking.", time: "1–3 Yrs", fit: "65%", gap: "Medium", m: 3, c: 2 },
+  ];
+  const toggle = (id) => setCart(c => c.includes(id) ? c.filter(x => x !== id) : [...c, id]);
+
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 1000, fontFamily: font }}>
+      <FadeIn>
+        <Tag color={C.violet}>MULTIVERSE EXPLORER</Tag>
+        <h1 style={{ margin: "10px 0 6px", fontSize: 28, fontWeight: 700, color: C.text }}>Explore Your Professional Multiverse</h1>
+        <p style={{ margin: "0 0 10px", color: C.textMuted, fontSize: 14, lineHeight: 1.6 }}>
+          Each path is a different reality. Add to your Shopping Cart to compare side-by-side.
+        </p>
+        {cart.length > 0 && <Tag color={C.gold}>🛒 {cart.length} path{cart.length > 1 ? "s" : ""} in cart</Tag>}
+      </FadeIn>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "20px 0 24px" }}>
+        {paths.map((p, i) => (
+          <FadeIn key={p.id} delay={100 + i * 60}>
+            <Glass hover glow={expanded === p.id ? `${p.color}20` : null}
+              onClick={() => setExpanded(expanded === p.id ? null : p.id)}
+              style={{ cursor: "pointer", borderColor: cart.includes(p.id) ? `${p.color}40` : C.border }}>
+              <div style={{ display: "flex", alignItems: "start", gap: 12 }}>
+                <GlowIcon emoji={p.emoji} color={p.color} size={40} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <span style={{ fontSize: 11, fontFamily: fontMono, color: p.color, fontWeight: 600 }}>{p.type.toUpperCase()}</span>
+                      <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginTop: 2 }}>{p.role}</div>
+                    </div>
+                    {cart.includes(p.id) && <Tag color={p.color}>In Cart</Tag>}
+                  </div>
+                  <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.55, margin: "8px 0 12px" }}>{p.desc}</p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Tag color={C.textMuted}>⏱ {p.time}</Tag>
+                    <Tag color={C.green}>Fit: {p.fit}</Tag>
+                    <Tag color={p.gap === "High" ? C.coral : p.gap === "Medium" ? C.gold : C.green}>Gap: {p.gap}</Tag>
+                  </div>
+
+                  {expanded === p.id && (
+                    <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 10, background: C.bgSurface, border: `1px solid ${C.borderSubtle}` }}>
+                      <div style={{ fontSize: 11, fontFamily: fontMono, color: C.textDim, marginBottom: 8, letterSpacing: 1 }}>3/2 RULE BALANCE</div>
+                      <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                        {[...Array(5)].map((_, j) => (
+                          <div key={j} style={{
+                            flex: 1, height: 24, borderRadius: 4,
+                            background: j < p.m ? `linear-gradient(135deg, ${C.cyan}60, ${C.cyan})` : `linear-gradient(135deg, ${C.coral}60, ${C.coral})`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 9, fontWeight: 700, color: C.white, fontFamily: fontMono,
+                          }}>{j < p.m ? "M" : "C"}</div>
+                        ))}
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
+                        <span style={{ color: C.cyan }}>Mastery: {p.m}/5</span>
+                        <span style={{ color: C.coral }}>Challenge: {p.c}/5</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: p.m === 3 && p.c === 2 ? C.green : C.gold, marginTop: 6, fontWeight: 600 }}>
+                        {p.m === 3 && p.c === 2 ? "✓ Optimal 3/2 balance" : p.m >= 4 ? "⚠ Stagnation risk" : "⚠ Burnout risk"}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 14 }}>
+                    <Btn variant={cart.includes(p.id) ? "ghost" : "primary"}
+                      onClick={(e) => { e.stopPropagation(); toggle(p.id); }}
+                      style={{ fontSize: 12, padding: "7px 16px" }}>
+                      {cart.includes(p.id) ? "Remove" : "🛒 Add to Cart"}
+                    </Btn>
+                  </div>
+                </div>
+              </div>
+            </Glass>
+          </FadeIn>
+        ))}
+      </div>
+
+      {cart.length >= 2 && (
+        <FadeIn delay={100}>
+          <Glass style={{ borderColor: `${C.gold}25` }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+              <span style={{ fontSize: 20 }}>🛒</span>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.text }}>Shopping Cart — Comparison</h3>
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <th style={{ textAlign: "left", padding: "10px 14px", color: C.textDim, fontSize: 12, fontFamily: fontMono }}>Metric</th>
+                  {cart.map(id => { const p = paths.find(x => x.id === id);
+                    return <th key={id} style={{ textAlign: "center", padding: "10px 14px", color: p.color, fontSize: 13, fontWeight: 600 }}>{p.role}</th>;
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {[["Timeline","time"],["Persona Fit","fit"],["Gap Difficulty","gap"],["Mastery","m"],["Challenge","c"]].map(([label, key]) => (
+                  <tr key={label} style={{ borderBottom: `1px solid ${C.borderSubtle}` }}>
+                    <td style={{ padding: "10px 14px", color: C.textMuted }}>{label}</td>
+                    {cart.map(id => { const p = paths.find(x => x.id === id);
+                      const v = key === "m" || key === "c" ? `${p[key]}/5` : p[key];
+                      return <td key={id} style={{ textAlign: "center", padding: "10px 14px", color: C.text, fontWeight: 500 }}>{v}</td>;
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 18 }}><Btn onClick={onNext}>Select & Build Roadmap →</Btn></div>
+          </Glass>
+        </FadeIn>
+      )}
+      {cart.length === 1 && <FadeIn><div style={{ textAlign: "center", marginTop: 16 }}><Btn onClick={onNext}>Proceed with Path →</Btn></div></FadeIn>}
+    </div>
+  );
+};
+
+/* ═══════ STEP 4 — Roadmap ═══════ */
+
+/* ─── MIND MAP — Interactive SVG Node Graph ─── */
+const MindMapView = () => {
+  const [activeNode, setActiveNode] = useState(null);
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => { setTimeout(() => setAnimated(true), 300); }, []);
+
+  // Node definitions: center user + 3 cluster rings
+  const center = { id: "you", x: 420, y: 260, r: 38, label: "YOU", sub: "Current State", color: C.cyan, emoji: "👤" };
+
+  const clusters = [
+    { id: "comp", label: "Competencies", emoji: "🧩", color: C.coral, x: 160, y: 120, r: 30,
+      children: [
+        { id: "c1", label: "Financial Mgmt", status: "gap", x: 60, y: 50 },
+        { id: "c2", label: "Strategic Planning", status: "gap", x: 50, y: 170 },
+        { id: "c3", label: "Technical Leadership", status: "strong", x: 170, y: 30 },
+      ]},
+    { id: "skills", label: "Skills", emoji: "🔧", color: C.cyan, x: 420, y: 50, r: 30,
+      children: [
+        { id: "s1", label: "Cloud Architecture", status: "strong", x: 320, y: 10 },
+        { id: "s2", label: "Budget Ownership", status: "gap", x: 520, y: 10 },
+        { id: "s3", label: "Exec Communication", status: "gap", x: 420, y: -20 },
+      ]},
+    { id: "exp", label: "Experiences", emoji: "🏆", color: C.violet, x: 680, y: 120, r: 30,
+      children: [
+        { id: "e1", label: "P&L Leadership", status: "gap", x: 770, y: 50 },
+        { id: "e2", label: "Board Presentation", status: "gap", x: 790, y: 170 },
+        { id: "e3", label: "Team Scaling (50+)", status: "strong", x: 680, y: 30 },
+      ]},
+    { id: "target", label: "Target Role", emoji: "🎯", color: C.gold, x: 420, y: 470, r: 30,
+      children: [
+        { id: "t1", label: "VP Engineering", status: "target", x: 300, y: 490 },
+        { id: "t2", label: "Requires P&L", status: "req", x: 540, y: 490 },
+      ]},
+    { id: "growth", label: "Growth Areas", emoji: "📈", color: C.green, x: 160, y: 400, r: 30,
+      children: [
+        { id: "g1", label: "Public Speaking", status: "gap", x: 60, y: 370 },
+        { id: "g2", label: "Mentoring", status: "progress", x: 60, y: 450 },
+      ]},
+    { id: "certs", label: "Certifications", emoji: "📜", color: "#F59E0B", x: 680, y: 400, r: 30,
+      children: [
+        { id: "cr1", label: "AWS Solutions", status: "progress", x: 790, y: 370 },
+        { id: "cr2", label: "TOGAF", status: "gap", x: 790, y: 450 },
+      ]},
+  ];
+
+  const statusColor = (s) => s === "strong" ? C.green : s === "gap" ? C.coral : s === "progress" ? C.gold : s === "target" ? C.gold : s === "req" ? C.violet : C.textDim;
+  const statusLabel = (s) => s === "strong" ? "✓ Strong" : s === "gap" ? "Gap" : s === "progress" ? "In Progress" : s === "target" ? "Goal" : s === "Required" ;
+
+  return (
+    <div style={{ position: "relative" }}>
+      {/* Legend */}
+      <div style={{ display: "flex", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
+        {[
+          { color: C.green, label: "Strong / Met" },
+          { color: C.gold, label: "In Progress" },
+          { color: C.coral, label: "Gap / Needed" },
+          { color: C.violet, label: "Required for Target" },
+        ].map(l => (
+          <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.textMuted }}>
+            <div style={{ width: 8, height: 8, borderRadius: 4, background: l.color, boxShadow: `0 0 6px ${l.color}60` }} />
+            {l.label}
+          </div>
+        ))}
+      </div>
+
+      <Glass pad={0} style={{ overflow: "hidden", minHeight: 520 }}>
+        <svg width="100%" height="520" viewBox="0 0 840 520" style={{ display: "block" }}>
+          <defs>
+            <filter id="nodeGlow">
+              <feGaussianBlur stdDeviation="6" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <filter id="lineGlow">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+
+          {/* Connection lines — center to clusters */}
+          {clusters.map(cl => (
+            <line key={`line-${cl.id}`} x1={center.x} y1={center.y} x2={cl.x} y2={cl.y}
+              stroke={cl.color} strokeWidth={animated ? 1.5 : 0} strokeOpacity={0.25}
+              strokeDasharray="6 4" filter="url(#lineGlow)"
+              style={{ transition: "stroke-width 1s ease 0.5s" }} />
+          ))}
+
+          {/* Connection lines — clusters to children */}
+          {clusters.map(cl => cl.children.map(ch => (
+            <line key={`cline-${ch.id}`} x1={cl.x} y1={cl.y} x2={ch.x} y2={ch.y}
+              stroke={statusColor(ch.status)} strokeWidth={animated ? 1 : 0} strokeOpacity={0.3}
+              style={{ transition: "stroke-width 0.8s ease 0.8s" }} />
+          )))}
+
+          {/* Child nodes */}
+          {clusters.map(cl => cl.children.map(ch => {
+            const sc = statusColor(ch.status);
+            const isActive = activeNode === ch.id;
+            return (
+              <g key={ch.id} onClick={() => setActiveNode(isActive ? null : ch.id)} style={{ cursor: "pointer" }}>
+                <circle cx={ch.x} cy={ch.y} r={isActive ? 22 : 16}
+                  fill={`${sc}15`} stroke={sc} strokeWidth={isActive ? 2 : 1}
+                  style={{ transition: "all 0.3s ease", opacity: animated ? 1 : 0 }}
+                  filter={isActive ? "url(#nodeGlow)" : undefined} />
+                <circle cx={ch.x} cy={ch.y} r={4} fill={sc}
+                  style={{ opacity: animated ? 1 : 0, transition: "opacity 0.5s ease 1s" }} />
+                <text x={ch.x} y={ch.y + (ch.y < 260 ? -22 : 28)} textAnchor="middle"
+                  fontSize="10" fontFamily={font} fontWeight="500"
+                  fill={isActive ? sc : C.textMuted}
+                  style={{ opacity: animated ? 1 : 0, transition: "opacity 0.6s ease 1.1s" }}>
+                  {ch.label}
+                </text>
+                {isActive && (
+                  <text x={ch.x} y={ch.y + (ch.y < 260 ? -34 : 40)} textAnchor="middle"
+                    fontSize="9" fontFamily={fontMono} fontWeight="600" fill={sc}>
+                    {statusLabel(ch.status)}
+                  </text>
+                )}
+              </g>
+            );
+          }))}
+
+          {/* Cluster nodes */}
+          {clusters.map(cl => {
+            const isActive = activeNode === cl.id;
+            return (
+              <g key={cl.id} onClick={() => setActiveNode(isActive ? null : cl.id)} style={{ cursor: "pointer" }}>
+                <circle cx={cl.x} cy={cl.y} r={cl.r} fill={C.bgSurface} stroke={cl.color}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                  style={{ transition: "all 0.3s ease", opacity: animated ? 1 : 0 }}
+                  filter={isActive ? "url(#nodeGlow)" : undefined} />
+                <text x={cl.x} y={cl.y + 5} textAnchor="middle" fontSize="18"
+                  style={{ opacity: animated ? 1 : 0, transition: "opacity 0.4s ease 0.6s" }}>
+                  {cl.emoji}
+                </text>
+                <text x={cl.x} y={cl.y + cl.r + 16} textAnchor="middle"
+                  fontSize="11" fontFamily={font} fontWeight="600" fill={cl.color}
+                  style={{ opacity: animated ? 1 : 0, transition: "opacity 0.5s ease 0.8s" }}>
+                  {cl.label}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Center node — YOU */}
+          <g>
+            <circle cx={center.x} cy={center.y} r={center.r + 8} fill="none" stroke={C.cyan}
+              strokeWidth="1" strokeOpacity="0.2" strokeDasharray="4 3">
+              <animateTransform attributeName="transform" type="rotate"
+                from={`0 ${center.x} ${center.y}`} to={`360 ${center.x} ${center.y}`} dur="30s" repeatCount="indefinite" />
+            </circle>
+            <circle cx={center.x} cy={center.y} r={center.r} fill={C.bgSurface}
+              stroke={C.cyan} strokeWidth="2.5" filter="url(#nodeGlow)"
+              style={{ opacity: animated ? 1 : 0, transition: "opacity 0.3s ease" }} />
+            <text x={center.x} y={center.y + 5} textAnchor="middle" fontSize="22"
+              style={{ opacity: animated ? 1 : 0, transition: "opacity 0.4s ease 0.3s" }}>
+              {center.emoji}
+            </text>
+            <text x={center.x} y={center.y + center.r + 18} textAnchor="middle"
+              fontSize="12" fontFamily={fontMono} fontWeight="700" fill={C.cyan} letterSpacing="2"
+              style={{ opacity: animated ? 1 : 0, transition: "opacity 0.5s ease 0.5s" }}>
+              {center.label}
+            </text>
+            <text x={center.x} y={center.y + center.r + 32} textAnchor="middle"
+              fontSize="10" fontFamily={font} fill={C.textMuted}
+              style={{ opacity: animated ? 1 : 0, transition: "opacity 0.5s ease 0.6s" }}>
+              {center.sub}
+            </text>
+          </g>
+        </svg>
+      </Glass>
+    </div>
+  );
+};
+
+/* ─── PATHWAY — Journey Timeline ─── */
+const PathwayView = ({ onNext }) => {
+  const [checkedItems, setCheckedItems] = useState({});
+  const toggle = (id) => setCheckedItems(p => ({ ...p, [id]: !p[id] }));
+
+  const phases = [
+    { period: "Now", range: "0–6 Months", color: C.cyan, icon: "🏁",
+      items: [
+        { id: "n1", t: "AWS Solutions Certification", type: "Certification", gap: "Cloud Architecture" },
+        { id: "n2", t: "Public Speaking Course", type: "Skill Development", gap: "Exec Communication" },
+        { id: "n3", t: "Weekly 1:1 with CFO sponsor", type: "Relationship", gap: "Financial Exposure" },
+      ]},
+    { period: "Near", range: "1–2 Years", color: C.violet, icon: "⚡",
+      items: [
+        { id: "m1", t: "Lead $5M P&L Project", type: "Experience", gap: "Financial Management" },
+        { id: "m2", t: "Mentor 3 Junior Developers", type: "Leadership", gap: "People Leadership" },
+        { id: "m3", t: "Present at Board Meeting", type: "Visibility", gap: "Board Presentation" },
+      ]},
+    { period: "Next", range: "2–5 Years", color: C.coral, icon: "🎯",
+      items: [
+        { id: "f1", t: "VP Engineering", type: "Target Role", gap: "Destination" },
+        { id: "f2", t: "Own engineering org (50+ ICs)", type: "Scope", gap: "Org Leadership" },
+      ]},
+  ];
+
+  const totalItems = phases.reduce((a, p) => a + p.items.length, 0);
+  const checkedCount = Object.values(checkedItems).filter(Boolean).length;
+
+  return (
+    <div>
+      {/* Progress bar */}
+      <Glass pad={16} style={{ marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Ring pct={(checkedCount / totalItems) * 100} size={40} stroke={3} />
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{checkedCount} / {totalItems} milestones</div>
+              <div style={{ fontSize: 11, color: C.textMuted }}>Track your progress interactively</div>
+            </div>
+          </div>
+          <Tag color={checkedCount > 0 ? C.green : C.textDim}>
+            {checkedCount === 0 ? "Not Started" : checkedCount === totalItems ? "Complete!" : "In Progress"}
+          </Tag>
+        </div>
+        <div style={{ height: 4, borderRadius: 2, background: C.bgSurface, overflow: "hidden" }}>
+          <div style={{
+            height: "100%", borderRadius: 2, width: `${(checkedCount / totalItems) * 100}%`,
+            background: `linear-gradient(90deg, ${C.cyan}, ${C.violet}, ${C.coral})`,
+            boxShadow: `0 0 12px ${C.cyanGlow}`,
+            transition: "width 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+          }} />
+        </div>
+      </Glass>
+
+      {/* Horizontal pathway with connecting line */}
+      <div style={{ position: "relative" }}>
+        {/* The connecting journey line */}
+        <div style={{
+          position: "absolute", top: 28, left: 40, right: 40, height: 3, zIndex: 0,
+          background: `linear-gradient(90deg, ${C.cyan}40, ${C.violet}40, ${C.coral}40)`,
+          borderRadius: 2,
+        }}>
+          <div style={{
+            height: "100%", borderRadius: 2,
+            width: `${(checkedCount / totalItems) * 100}%`,
+            background: `linear-gradient(90deg, ${C.cyan}, ${C.violet}, ${C.coral})`,
+            boxShadow: `0 0 10px ${C.cyanGlow}`,
+            transition: "width 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
+          }} />
+        </div>
+
+        {/* Phase columns */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, position: "relative", zIndex: 1 }}>
+          {phases.map((p, pi) => {
+            const phaseChecked = p.items.filter(item => checkedItems[item.id]).length;
+            const phaseComplete = phaseChecked === p.items.length;
+            return (
+              <div key={p.period}>
+                {/* Phase dot on the line */}
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: 16,
+                    background: phaseComplete ? `${p.color}25` : C.bgSurface,
+                    border: `2px solid ${phaseComplete ? p.color : `${p.color}40`}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 24, position: "relative",
+                    boxShadow: phaseComplete ? `0 0 24px ${p.color}30` : "none",
+                    transition: "all 0.4s ease",
+                  }}>
+                    {phaseComplete ? "✅" : p.icon}
+                  </div>
+                </div>
+
+                {/* Phase header */}
+                <div style={{ textAlign: "center", marginBottom: 12 }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: p.color }}>{p.period}</div>
+                  <div style={{ fontSize: 11, color: C.textDim, fontFamily: fontMono, letterSpacing: 1 }}>{p.range}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
+                    {phaseChecked}/{p.items.length} complete
+                  </div>
+                </div>
+
+                {/* Milestone cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {p.items.map(item => {
+                    const checked = checkedItems[item.id];
+                    return (
+                      <Glass key={item.id} pad={12} hover
+                        glow={checked ? `${C.green}12` : `${p.color}08`}
+                        onClick={() => toggle(item.id)}
+                        style={{
+                          cursor: "pointer",
+                          borderColor: checked ? `${C.green}30` : C.border,
+                          background: checked ? `${C.green}06` : C.bgGlass,
+                        }}>
+                        <div style={{ display: "flex", alignItems: "start", gap: 10 }}>
+                          {/* Checkbox */}
+                          <div style={{
+                            width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                            border: `2px solid ${checked ? C.green : `${p.color}50`}`,
+                            background: checked ? `${C.green}20` : "transparent",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "all 0.3s ease",
+                          }}>
+                            {checked && <span style={{ fontSize: 11, color: C.green }}>✓</span>}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              fontSize: 13, fontWeight: 500, color: checked ? C.green : C.text,
+                              textDecoration: checked ? "line-through" : "none",
+                              opacity: checked ? 0.7 : 1,
+                              transition: "all 0.3s ease",
+                            }}>{item.t}</div>
+                            <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap" }}>
+                              <span style={{
+                                padding: "2px 7px", borderRadius: 4, fontSize: 10, fontWeight: 600,
+                                background: `${p.color}12`, color: p.color, border: `1px solid ${p.color}20`,
+                              }}>{item.type}</span>
+                              <span style={{
+                                padding: "2px 7px", borderRadius: 4, fontSize: 10,
+                                background: C.bgSurface, color: C.textMuted, border: `1px solid ${C.borderSubtle}`,
+                              }}>🎯 {item.gap}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </Glass>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── ROADMAP — Combined View with Tab Switcher ─── */
+const RoadmapView = ({ onNext }) => {
+  const [tab, setTab] = useState("mindmap");
+
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 1050, fontFamily: font }}>
+      <FadeIn>
+        <Tag color={C.gold}>PHASE 04</Tag>
+        <h1 style={{ margin: "10px 0 6px", fontSize: 28, fontWeight: 700, color: C.text, letterSpacing: -0.5 }}>
+          Your Personalized Roadmap
+        </h1>
+        <p style={{ margin: "0 0 20px", color: C.textMuted, fontSize: 14, lineHeight: 1.6 }}>
+          Two views of your journey: the Mind Map shows your delta — what you have and what you need. The Pathway shows when and how to get there.
+        </p>
+      </FadeIn>
+
+      {/* Tab Switcher */}
+      <FadeIn delay={100}>
+        <div style={{
+          display: "inline-flex", padding: 4, borderRadius: 12, marginBottom: 24,
+          background: C.bgSurface, border: `1px solid ${C.border}`,
+        }}>
+          {[
+            { id: "mindmap", label: "🧠 Mind Map", sub: "The Delta" },
+            { id: "pathway", label: "🛤️ Pathway", sub: "The Journey" },
+          ].map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              padding: "10px 24px", borderRadius: 10, border: "none", cursor: "pointer",
+              background: tab === t.id ? `${C.cyan}15` : "transparent",
+              transition: "all 0.25s ease", fontFamily: font,
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: tab === t.id ? C.cyan : C.textMuted }}>
+                {t.label}
+              </div>
+              <div style={{ fontSize: 10, color: tab === t.id ? `${C.cyan}90` : C.textDim, marginTop: 2 }}>
+                {t.sub}
+              </div>
+            </button>
+          ))}
+        </div>
+      </FadeIn>
+
+      {/* Active View */}
+      <FadeIn delay={200} key={tab}>
+        {tab === "mindmap" ? <MindMapView /> : <PathwayView onNext={onNext} />}
+      </FadeIn>
+
+      <div style={{ textAlign: "right", marginTop: 24 }}>
+        <Btn onClick={onNext}>Explore Marketplace →</Btn>
+      </div>
+    </div>
+  );
+};
+
+/* ═══════ STEP 5 — Marketplace ═══════ */
+
+const MarketplaceView = () => {
+  const cats = [
+    { cat: "Learning", emoji: "📚", color: C.cyan, items: [
+      { name: "AWS Solutions Architect Prep", by: "A Cloud Guru", match: "Gap: Cloud Architecture", tag: "Cert" },
+      { name: "Executive Communication", by: "Coursera", match: "Gap: Public Speaking", tag: "Course" },
+    ]},
+    { cat: "Visibility", emoji: "📡", color: C.coral, items: [
+      { name: "CTO Summit 2026", by: "TechConnect", match: "Network: C-Suite", tag: "Conference" },
+      { name: "Eng. Leadership Pod", by: "InfoQ", match: "Thought Leadership", tag: "Podcast" },
+    ]},
+    { cat: "Jobs", emoji: "💼", color: C.violet, items: [
+      { name: "VP Eng — HealthTech Series B", by: "MedAI Corp", match: "Fit: 85%", tag: "External" },
+      { name: "Director of Engineering", by: "Current Company", match: "Fit: 72%", tag: "Internal" },
+    ]},
+  ];
+  return (
+    <div style={{ padding: "36px 44px", maxWidth: 1000, fontFamily: font }}>
+      <FadeIn>
+        <Tag color={C.green}>PHASE 05</Tag>
+        <h1 style={{ margin: "10px 0 6px", fontSize: 28, fontWeight: 700, color: C.text }}>Growth Marketplace</h1>
+        <p style={{ margin: "0 0 28px", color: C.textMuted, fontSize: 14 }}>Every recommendation mapped to your roadmap gaps.</p>
+      </FadeIn>
+      {cats.map((c, ci) => (
+        <FadeIn key={c.cat} delay={100 + ci * 80}>
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <span style={{ fontSize: 18 }}>{c.emoji}</span>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: C.text }}>{c.cat}</h3>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {c.items.map(item => (
+                <Glass key={item.name} hover glow={`${c.color}10`}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{item.name}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{item.by}</div>
+                    </div>
+                    <Tag color={c.color}>{item.tag}</Tag>
+                  </div>
+                  <div style={{ padding: "6px 10px", borderRadius: 6, background: C.bgSurface, fontSize: 12, color: C.cyan, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    🎯 {item.match}
+                  </div>
+                </Glass>
+              ))}
+            </div>
+          </div>
+        </FadeIn>
+      ))}
+      <FadeIn delay={400}>
+        <Glass style={{ textAlign: "center", background: `linear-gradient(135deg, ${C.cyanSoft}, ${C.violetSoft})`, borderColor: `${C.cyan}20` }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>✨</div>
+          <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 6 }}>Your Navigator journey is live</div>
+          <div style={{ fontSize: 13, color: C.textMuted }}>Return anytime to track progress and discover new opportunities.</div>
+        </Glass>
+      </FadeIn>
+    </div>
+  );
+};
+
+/* ═══════ ADMIN VIEWS ═══════ */
+
+const AdminDash = () => (
+  <div style={{ padding: "36px 44px", maxWidth: 1100, fontFamily: font }}>
+    <FadeIn>
+      <h1 style={{ margin: "0 0 6px", fontSize: 28, fontWeight: 700, color: C.text }}>Admin Dashboard</h1>
+      <p style={{ margin: "0 0 28px", color: C.textMuted, fontSize: 14 }}>Platform health</p>
+    </FadeIn>
+    <FadeIn delay={100}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 14, marginBottom: 24 }}>
+        {[
+          { l: "Users", v: "1,247", d: "+12%", e: "👥", c: C.cyan },
+          { l: "Journeys", v: "834", d: "+8%", e: "🧭", c: C.violet },
+          { l: "Assessments", v: "2,891", d: "+23%", e: "🔥", c: C.coral },
+          { l: "Connects", v: "456", d: "+15%", e: "🚀", c: C.gold },
+        ].map(s => (
+          <Glass key={s.l}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+              <GlowIcon emoji={s.e} color={s.c} size={36} /><span style={{ fontSize: 11, fontWeight: 600, color: C.green }}>{s.d}</span>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: C.text }}>{s.v}</div>
+            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{s.l}</div>
+          </Glass>
+        ))}
+      </div>
+    </FadeIn>
+    <FadeIn delay={200}>
+      <Glass>
+        <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 600, color: C.text }}>Recent Activity</h3>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            {["User", "Role", "Step", "Path", "Status"].map(h => (
+              <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: C.textDim, fontWeight: 600, fontSize: 11, fontFamily: fontMono }}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {[
+              { n: "Sarah Chen", r: "Eng Director", s: "Multiverse", p: "Explorer", st: "Active" },
+              { n: "James R.", r: "Sr Architect", s: "The Grill", p: "—", st: "In Progress" },
+              { n: "Priya S.", r: "Tech Lead", s: "Roadmap", p: "Linear", st: "Active" },
+              { n: "Marcus J.", r: "VP Platform", s: "Marketplace", p: "Linear", st: "Completed" },
+            ].map(u => (
+              <tr key={u.n} style={{ borderBottom: `1px solid ${C.borderSubtle}` }}>
+                <td style={{ padding: "10px 12px", fontWeight: 500, color: C.text }}>{u.n}</td>
+                <td style={{ padding: "10px 12px", color: C.textMuted }}>{u.r}</td>
+                <td style={{ padding: "10px 12px", color: C.text }}>{u.s}</td>
+                <td style={{ padding: "10px 12px" }}><Tag color={u.p === "Explorer" ? C.violet : u.p === "Linear" ? C.cyan : C.textDim}>{u.p}</Tag></td>
+                <td style={{ padding: "10px 12px" }}><Tag color={u.st === "Completed" ? C.green : u.st === "Active" ? C.cyan : C.gold}>{u.st}</Tag></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Glass>
+    </FadeIn>
+  </div>
+);
+
+const AdminUsersView = () => (
+  <div style={{ padding: "36px 44px", maxWidth: 1100, fontFamily: font }}>
+    <FadeIn>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 700, color: C.text }}>Users & Roles</h1>
+          <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>Tech leaders, mentors, curators</p>
+        </div>
+        <Btn>+ Add User</Btn>
+      </div>
+    </FadeIn>
+    <FadeIn delay={80}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+        {["All", "Tech Leaders", "Mentors", "Curators"].map((f, i) => (
+          <Btn key={f} variant={i === 0 ? "primary" : "ghost"} style={{ padding: "6px 14px", fontSize: 12 }}>{f}</Btn>
+        ))}
+      </div>
+    </FadeIn>
+    <FadeIn delay={150}>
+      <Glass>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <thead><tr style={{ borderBottom: `1px solid ${C.border}` }}>
+            {["Name", "Role", "Stage", "Path", "Joined"].map(h => (
+              <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: C.textDim, fontWeight: 600, fontSize: 11, fontFamily: fontMono }}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {[
+              { n: "Sarah Chen", r: "Tech Leader", s: "Multiverse", p: "Explorer", j: "Jan 26" },
+              { n: "James R.", r: "Tech Leader", s: "Assessment", p: "—", j: "Feb 26" },
+              { n: "Dr. M. Lopez", r: "Mentor", s: "—", p: "—", j: "Dec 25" },
+              { n: "Alex Kim", r: "Curator", s: "—", p: "—", j: "Nov 25" },
+            ].map(u => (
+              <tr key={u.n} style={{ borderBottom: `1px solid ${C.borderSubtle}` }}>
+                <td style={{ padding: "10px 12px", fontWeight: 500, color: C.text }}>{u.n}</td>
+                <td style={{ padding: "10px 12px" }}><Tag color={u.r === "Tech Leader" ? C.cyan : u.r === "Mentor" ? C.coral : C.gold}>{u.r}</Tag></td>
+                <td style={{ padding: "10px 12px", color: C.text }}>{u.s}</td>
+                <td style={{ padding: "10px 12px" }}><Tag color={u.p === "Explorer" ? C.violet : u.p === "Linear" ? C.cyan : C.textDim}>{u.p}</Tag></td>
+                <td style={{ padding: "10px 12px", color: C.textDim }}>{u.j}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Glass>
+    </FadeIn>
+  </div>
+);
+
+const AdminMPView = () => (
+  <div style={{ padding: "36px 44px", maxWidth: 1100, fontFamily: font }}>
+    <FadeIn><h1 style={{ margin: "0 0 24px", fontSize: 28, fontWeight: 700, color: C.text }}>Marketplace Curation</h1></FadeIn>
+    <FadeIn delay={100}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 14, marginBottom: 24 }}>
+        {[{ l: "Learning", v: 34, p: 5, c: C.cyan }, { l: "Visibility", v: 18, p: 2, c: C.coral }, { l: "Jobs", v: 12, p: 8, c: C.violet }].map(x => (
+          <Glass key={x.l}><div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>{x.l}</div>
+            <div style={{ fontSize: 28, fontWeight: 700, color: C.text }}>{x.v}</div>
+            <div style={{ fontSize: 12, color: C.gold, marginTop: 4 }}>{x.p} pending</div></Glass>
+        ))}
+      </div>
+    </FadeIn>
+    <FadeIn delay={200}>
+      <Glass>
+        <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 600, color: C.text }}>Pending Approvals</h3>
+        {[{ n: "TechMentor Pro", t: "Coaching" }, { n: "CloudSkills Academy", t: "Certs" }, { n: "StartupBoard.io", t: "Board Seats" }].map(p => (
+          <div key={p.n} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 0", borderBottom: `1px solid ${C.borderSubtle}` }}>
+            <div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{p.n}</div><div style={{ fontSize: 12, color: C.textMuted }}>{p.t}</div></div>
+            <div style={{ display: "flex", gap: 8 }}><Btn style={{ padding: "6px 14px", fontSize: 12 }}>Approve</Btn><Btn variant="ghost" style={{ padding: "6px 14px", fontSize: 12 }}>Reject</Btn></div>
+          </div>
+        ))}
+      </Glass>
+    </FadeIn>
+  </div>
+);
+
+const AdminConfigView = () => (
+  <div style={{ padding: "36px 44px", maxWidth: 900, fontFamily: font }}>
+    <FadeIn><h1 style={{ margin: "0 0 28px", fontSize: 28, fontWeight: 700, color: C.text }}>Configuration</h1></FadeIn>
+    <FadeIn delay={100}>
+      <Glass style={{ marginBottom: 16 }}>
+        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 600, color: C.text }}>🔒 Privacy</h3>
+        {[{ l: "Privacy Firewall", d: "Job exploration stays confidential", on: true }, { l: "Data Vault Isolation", d: "Full tenant separation", on: true }].map(s => (
+          <div key={s.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${C.borderSubtle}` }}>
+            <div><div style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{s.l}</div><div style={{ fontSize: 12, color: C.textMuted }}>{s.d}</div></div>
+            <div style={{ width: 44, height: 24, borderRadius: 12, padding: 2, background: s.on ? C.cyan : C.textDim }}>
+              <div style={{ width: 20, height: 20, borderRadius: 10, background: C.white, transform: s.on ? "translateX(20px)" : "translateX(0)", transition: "transform 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
+            </div>
+          </div>
+        ))}
+      </Glass>
+    </FadeIn>
+    <FadeIn delay={200}>
+      <Glass>
+        <h3 style={{ margin: "0 0 16px", fontSize: 15, fontWeight: 600, color: C.text }}>⚙️ Assessment</h3>
+        {[{ l: "Grill Depth", v: "4–6 questions" }, { l: "Frameworks", v: "TOGAF · ITIL · SFIA" }, { l: "Path Fork", v: "User-selected" }].map(s => (
+          <div key={s.l} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${C.borderSubtle}` }}>
+            <span style={{ fontSize: 14, fontWeight: 500, color: C.text }}>{s.l}</span>
+            <span style={{ padding: "4px 12px", borderRadius: 6, background: C.bgSurface, border: `1px solid ${C.borderSubtle}`, fontSize: 12, color: C.cyan, fontFamily: fontMono }}>{s.v}</span>
+          </div>
+        ))}
+      </Glass>
+    </FadeIn>
+  </div>
+);
+
+/* ═══════ ROOT ═══════ */
+
+function App() {
+  const [role, setRole] = useState(null);
+  const [view, setView] = useState("dashboard");
+  const [pathMode, setPathMode] = useState(null);
+
+  const login = (r) => { setRole(r); setView(r === "admin" ? "admin-dash" : "dashboard"); setPathMode(null); };
+  const logout = () => { setRole(null); setView("dashboard"); setPathMode(null); };
+  const choosePath = (mode) => { setPathMode(mode); setView(mode === "linear" ? "linear" : "multiverse"); };
+
+  if (!role) return <Login onLogin={login} />;
+
+  const views = {
+    dashboard: <Dashboard go={setView} />,
+    step1: <Step1 onNext={() => setView("step2")} />,
+    step2: <Step2 onNext={() => setView("pathfork")} />,
+    pathfork: <PathFork onChoose={choosePath} />,
+    linear: <LinearPath onNext={() => setView("step4")} />,
+    multiverse: <MultiverseExplorer onNext={() => setView("step4")} />,
+    step4: <RoadmapView onNext={() => setView("step5")} />,
+    step5: <MarketplaceView />,
+    "admin-dash": <AdminDash />,
+    "admin-users": <AdminUsersView />,
+    "admin-mp": <AdminMPView />,
+    "admin-config": <AdminConfigView />,
+  };
+
+  return (
+    <div style={{ display: "flex", minHeight: "100vh", background: C.bg, fontFamily: font }}>
+      <StarField />
+      <Sidebar role={role} view={view} go={setView} onLogout={logout} pathMode={pathMode} />
+      <div style={{ flex: 1, overflowY: "auto", maxHeight: "100vh", position: "relative", zIndex: 1 }}>
+        {views[view] || <Dashboard go={setView} />}
+      </div>
+    </div>
+  );
+}
+
+// ─── Mount ───
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+  </script>
+</body>
+</html>
