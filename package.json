@@ -1,0 +1,25 @@
+{
+  "name": "career-navigator-22742",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Career Navigator - Next.js app scaffold",
+  "scripts": {
+    "dev": "next dev -p ${PORT:-3000}",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3000}",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "15.2.4",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "eslint": "8.57.0",
+    "eslint-config-next": "15.2.4",
+    "typescript": "5.4.5"
+  }
+}
